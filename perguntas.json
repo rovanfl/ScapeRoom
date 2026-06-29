@@ -1,0 +1,92 @@
+[
+  {
+    "pergunta": "Um vetor deslocamento de 3 m para o leste é somado a outro de 4 m para o norte. Qual é o módulo do vetor resultante?",
+    "opcoes": ["5 m", "7 m", "1 m", "12 m"],
+    "resposta": "5 m"
+  },
+  {
+    "pergunta": "Dois vetores possuem módulos de 10 N e 6 N e atuam na mesma direção, porém em sentidos opostos. Qual é o módulo da resultante?",
+    "opcoes": ["16 N", "10 N", "4 N", "0 N"],
+    "resposta": "4 N"
+  },
+  {
+    "pergunta": "Quando dois vetores de mesmo módulo e mesma direção possuem sentidos opostos, a soma vetorial é:",
+    "opcoes": ["O dobro do módulo", "Nula", "Igual ao maior vetor", "Metade do módulo"],
+    "resposta": "Nula"
+  },
+  {
+    "pergunta": "A Primeira Lei de Newton afirma que um corpo tende a:",
+    "opcoes": [
+      "Aumentar sua velocidade continuamente",
+      "Permanecer em repouso ou em movimento retilíneo uniforme, se a força resultante for nula",
+      "Parar sempre que estiver em movimento",
+      "Mover-se apenas quando houver atrito"
+    ],
+    "resposta": "Permanecer em repouso ou em movimento retilíneo uniforme, se a força resultante for nula"
+  },
+  {
+    "pergunta": "Uma força resultante de 20 N atua sobre um corpo de massa 4 kg. Qual é a aceleração produzida?",
+    "opcoes": ["2 m/s²", "4 m/s²", "5 m/s²", "8 m/s²"],
+    "resposta": "5 m/s²"
+  },
+  {
+    "pergunta": "Segundo a Segunda Lei de Newton, a aceleração de um corpo é:",
+    "opcoes": [
+      "Diretamente proporcional à força resultante e inversamente proporcional à massa",
+      "Diretamente proporcional à massa e inversamente proporcional à força",
+      "Sempre igual à velocidade",
+      "Independente da força aplicada"
+    ],
+    "resposta": "Diretamente proporcional à força resultante e inversamente proporcional à massa"
+  },
+  {
+    "pergunta": "Um corpo de massa 2 kg sofre aceleração de 3 m/s². Qual é a força resultante aplicada sobre ele?",
+    "opcoes": ["1,5 N", "5 N", "6 N", "9 N"],
+    "resposta": "6 N"
+  },
+  {
+    "pergunta": "Segundo a Terceira Lei de Newton, quando um corpo exerce uma força sobre outro:",
+    "opcoes": [
+      "Apenas o primeiro corpo sofre ação",
+      "O segundo corpo exerce uma força de mesma intensidade e direção, mas sentido oposto",
+      "As forças se anulam por atuarem no mesmo corpo",
+      "O segundo corpo não reage"
+    ],
+    "resposta": "O segundo corpo exerce uma força de mesma intensidade e direção, mas sentido oposto"
+  },
+  {
+    "pergunta": "Um livro permanece em repouso sobre uma mesa. Considerando apenas as forças verticais, qual é a força resultante sobre o livro?",
+    "opcoes": ["Igual ao peso", "Igual à força normal", "Nula", "Igual ao dobro do peso"],
+    "resposta": "Nula"
+  },
+  {
+    "pergunta": "Um bloco de massa 6 kg é puxado horizontalmente por uma força de 30 N sobre uma superfície onde atua uma força de atrito de 12 N. Qual é a aceleração do bloco?",
+    "opcoes": ["1 m/s²", "2 m/s²", "3 m/s²", "5 m/s²"],
+    "resposta": "3 m/s²"
+  },
+  {
+    "pergunta": "Um elevador sobe com aceleração constante de 2 m/s². Uma pessoa de massa 70 kg está em seu interior. Considerando g = 10 m/s², qual é a força normal exercida pelo piso sobre a pessoa?",
+    "opcoes": ["560 N", "700 N", "840 N", "980 N"],
+    "resposta": "840 N"
+  },
+  {
+    "pergunta": "Dois blocos de massas 2 kg e 3 kg estão em contato sobre uma superfície horizontal sem atrito. Uma força horizontal de 20 N é aplicada ao bloco de 2 kg. Qual é a intensidade da força de contato entre os blocos?",
+    "opcoes": ["8 N", "10 N", "12 N", "20 N"],
+    "resposta": "12 N"
+  },
+  {
+    "pergunta": "Um bloco de massa 5 kg é puxado por uma força de 50 N que forma um ângulo de 37° com a horizontal. Desprezando o atrito e considerando cos(37°)=0,8, qual é a aceleração horizontal do bloco?",
+    "opcoes": ["4 m/s²", "6 m/s²", "8 m/s²", "10 m/s²"],
+    "resposta": "8 m/s²"
+  },
+  {
+    "pergunta": "Um caminhão exerce uma força de 8000 N sobre um automóvel para rebocá-lo. De acordo com a Terceira Lei de Newton, qual é a força que o automóvel exerce sobre o caminhão?",
+    "opcoes": ["0 N", "4000 N", "8000 N em sentido oposto", "16000 N em sentido oposto"],
+    "resposta": "8000 N em sentido oposto"
+  },
+  {
+    "pergunta": "Um carro de massa 1000 kg acelera a 2 m/s² em uma pista horizontal. Desprezando as resistências, qual é a força resultante sobre o carro?",
+    "opcoes": ["500 N", "1000 N", "2000 N", "4000 N"],
+    "resposta": "2000 N"
+  }
+]

@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape Room: A Biblioteca</title>
+    <style>
+        :root {
+            --primary-color: #f4e1d2;
+            --bg-color: #000;
+            --accent-color: #8b4513;
+            --overlay-color: rgba(0, 0, 0, 0.85);
+            --text-shadow: 2px 2px 4px #000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- UI Geral e Transições --- */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background-color: black;
+        }
+
+        .screen {
+            display: none; /* Oculto por padrão */
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-size: cover;
+            background-position: center;
+            opacity: 0; /* Começa invisível para o fade */
+            transition: opacity 1s ease-in-out; /* Animação de Fade */
+        }
+
+        /* Classe auxiliar para exibir a tela e aplicar o fade-in */
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* --- Elementos de UI --- */
+        button {
+            background: rgba(139, 69, 19, 0.9);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            margin: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: inherit;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+
+        button:hover {
+            background: #a0522d;
+            transform: scale(1.05);
+        }
+
+        h1 { font-size: 3rem; text-shadow: var(--text-shadow); margin-bottom: 10px; }
+        p { max-width: 700px; font-size: 1.2rem; line-height: 1.6; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; }
+
+        /* --- Cronômetro --- */
+        #timer-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: red;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border: 2px solid red;
+            border-radius: 5px;
+            z-index: 200;
+            display: none; /* Aparece só no jogo */
+            text-shadow: 0 0 10px red;
+        }
+
+        /* --- Telas Específicas --- */
+        /*#start-screen { background-image: url('img/bg_main.png'); }*/ /* Pode usar uma imagem específica de intro */
+        /*#game-screen { background-image: url('img/bg_main.png'); position: relative; }*/
+        
+        /* Hitboxes (Objetos Clicáveis) */
+        .interactive-obj {
+            position: absolute;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: transparent;
+            font-weight: bold;
+            text-shadow: none;
+        }
+
+        .interactive-obj:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+            color: white;
+            text-shadow: 2px 2px 2px black;
+        }
+
+        .interactive-obj.solved {
+            border-color: #0f0;
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+            color: #0f0;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* Posicionamento dos Objetos (Layout Atualizado) */
+        /* Estantes */
+        #hit-estante1 { top: 15%; left: 5%; width: 9%; height: 70%; }
+        #hit-estante2 { top: 15%; left: 16%; width: 9%; height: 55%; }
+        /* Quadro */
+        #hit-quadro { top: 13%; left: 31%; width: 35%; height: 47%; }
+        /* Mesa (Maior na horizontal) */
+        #hit-mesa-area { top: 60%; left: 15%; width: 70%; height: 35%; border: none; background: transparent; pointer-events: none; }
+        
+        /* Itens EM CIMA ou NA area da mesa */
+        /* Livro A (Esquerda da mesa) */
+        #hit-livro-a { top: 67%; left: 20%; width: 25%; height: 13%; }
+        /* Livro B (Direita da mesa - Antiga gaveta) */
+        #hit-livro-b { top: 65%; right: 17%; width: 15%; height: 15%; }
+        /* O puzzle "Mesa" em si (Centro da mesa) */
+        #hit-mesa-puzzle { top: 82%; left: 17%; width: 76%; height: 10%; }
+
+        #exit-door-btn {
+            position: absolute;
+            top: 100px;
+            right: 125px;
+            background: #333;
+            border: 2px solid red;
+            z-index: 10;
+        }
+
+        /* --- Tela de Puzzle (Close-up) --- */
+        #puzzle-screen {
+            /* O background será trocado via JS */
+            background-color: #222; 
+        }
+
+        .puzzle-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid var(--accent-color);
+            max-width: 800px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* --- Porta Final (Keypad) --- */
+        #door-screen {
+            background-image: url('img/door_scene.png');
+            background-color: #111;
+        }
+
+        #keypad-container {
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 20px;
+            border: 4px solid #555;
+        }
+
+        #keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .key {
+            width: 70px;
+            height: 70px;
+            background: #444;
+            border: 1px solid #777;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .key:active { background: #666; }
+        
+        #code-display {
+            background: black;
+            color: red;
+            font-size: 3rem;
+            padding: 10px;
+            text-align: center;
+            letter-spacing: 15px;
+            border: 2px solid #555;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* --- Tela Final --- */
+        #end-screen {
+            background-image: url('img/game_over.png');
+            background-color: #000; 
+        }
+        
+        #end-content {
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border: 2px solid white;
+        }
+
+        /* --- História --- */
+        .story-img-container {
+            width: 60%;
+            height: 50%;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid white;
+            margin-bottom: 2vh;
+        }
+        #story-1 { background-color: #050505; }
+        #story-2 { background-color: #0a0a0a; }
+        #story-3 { background-color: #111; }
+
+
+        /* Controles de Audio */
+        #audio-controls {
+            position: absolute;
+            top: 10px;
+            left: 100px;
+            z-index: 300;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-viewport">
+        
+        <div id="audio-controls">
+            <button id="toggle-audio" onclick="toggleAudio()" style="font-size: 1.5vh; padding: 1vh;">🔇 Som Off</button>
+        </div>
+
+        <div id="timer-display">00:00</div>
+
+        <div id="start-screen" class="screen active" style="background-image: url('img/bg_main.png');">
+            <div style="background: rgba(0,0,0,0.8); padding: 8vh; border-radius: 20px;">
+                <h1>A BIBLIOTECA</h1>
+                <p>Você consegue escapar?</p>
+                <button onclick="changeScene('start-screen', 'difficulty-screen')">Iniciar Jogo</button>
+                <button onclick="changeScene('start-screen', 'credits-screen')">Créditos</button>
+                <p></p><label>Carregar Perguntas (.json):</label>
+                <input type="file" accept=".json" onchange="loadCustomQuestions(this)"></div>
+            </div>
+        </div>
+
+        <div id="credits-screen" class="screen">
+            <h1>Créditos</h1>
+            <p>Jogo idealizado e testado por prof. Rovan F. Lopes.</p>
+            <p>Código e imagens geradas pelo Gemini IA e ChatGPT </p>
+            <p>Sons extraidos da plataforma scrtach.mit.edu </p>
+            <button onclick="changeScene('credits-screen', 'start-screen')">Voltar</button>
+        </div>
+
+        <div id="difficulty-screen" class="screen" style="background-image: url('img/bg_main.png');">
+            <div style="background: rgba(0,0,0,0.9); padding: 4vh;">
+                <h2>Selecione a Dificuldade</h2>
+                <button onclick="startStorySequence(20)">Fácil (20 min)</button>
+                <button onclick="startStorySequence(10)">Médio (10 min)</button>
+                <button onclick="startStorySequence(2)">Pró (2 min)</button>
+                <br>
+                <button onclick="changeScene('difficulty-screen', 'start-screen')" style="margin-top:20px; font-size: 1.5vh;">Voltar</button>
+            </div>
+        </div>
+
+        <div id="story-1" class="screen">
+            <div class="story-img-container" style="background-image: url('img/story1.png');"></div>
+            <p>Era uma noite chuvosa. Lucas, cansado dos estudos, acabou adormecendo na velha biblioteca da escola.</p>
+            <button onclick="changeScene('story-1', 'story-2')">Continuar</button>
+        </div>
+
+        <div id="story-2" class="screen">
+            <div class="story-img-container" style="background-image: url('img/story2.png');"></div>
+            <p>Ao acordar, o silêncio era absoluto. As luzes estavam fracas e a porta principal... trancada.</p>
+            <button onclick="changeScene('story-2', 'story-3')">Continuar</button>
+        </div>
+
+        <div id="story-3" class="screen">
+            <div class="story-img-container" style="background-image: url('img/story3.png');"></div>
+            <p>Para sair, ele precisa encontrar pistas escondidas. Cada enigma resolvido revela um número da senha de saída.</p>
+            <button onclick="finalizeStart()">COMEÇAR ESCAPE</button>
+        </div>
+
+        <div id="game-screen" class="screen" style="background-image: url('img/bg_main.png');">
+            <div id="hit-estante1" class="interactive-obj" onclick="enterPuzzle(0)">Estante A</div>
+            <div id="hit-estante2" class="interactive-obj" onclick="enterPuzzle(1)">Estante B</div>
+            <div id="hit-quadro" class="interactive-obj" onclick="enterPuzzle(2)">Quadro</div>
+            
+            <div id="hit-mesa-area"></div> <div id="hit-mesa-puzzle" class="interactive-obj" onclick="enterPuzzle(3)">Mesa Centro</div>
+            <div id="hit-livro-a" class="interactive-obj" onclick="enterPuzzle(4)">Livro A</div>
+            <div id="hit-livro-b" class="interactive-obj" onclick="enterPuzzle(5)">Livro B</div>
+
+            <button id="exit-door-btn" onclick="goToDoor()">PORTA SAÍDA</button>
+        </div>
+
+        <div id="puzzle-screen" class="screen">
+            <div class="puzzle-overlay">
+                <h2 id="puzzle-title">Desafio</h2>
+                <p id="puzzle-text">Pergunta...</p>
+                <div id="puzzle-options" class="options-grid"></div>
+                <div id="puzzle-progress" style="color: #aaa; margin-top:2vh; font-size: 2vh;"></div>
+                <button onclick="exitPuzzle()" style="background: #333; margin-top: 2vh; font-size: 2vh;">Voltar para Sala</button>
+            </div>
+        </div>
+
+        <div id="door-screen" class="screen">
+            <div id="keypad-container">
+                <h2 style="color:white; margin-bottom: 2vh;">ACESSO DE SEGURANÇA</h2>
+                <div id="code-display">_ _ _ _ _ _</div>
+                <div id="keypad">
+                    <button class="key" onclick="pressKey(1)">1</button>
+                    <button class="key" onclick="pressKey(2)">2</button>
+                    <button class="key" onclick="pressKey(3)">3</button>
+                    <button class="key" onclick="pressKey(4)">4</button>
+                    <button class="key" onclick="pressKey(5)">5</button>
+                    <button class="key" onclick="pressKey(6)">6</button>
+                    <button class="key" onclick="pressKey(7)">7</button>
+                    <button class="key" onclick="pressKey(8)">8</button>
+                    <button class="key" onclick="pressKey(9)">9</button>
+                    <button class="key" onclick="pressKey('C')" style="color: red;">C</button>
+                    <button class="key" onclick="pressKey(0)">0</button>
+                    <button class="key" onclick="verifyCode()" style="color: green;">OK</button>
+                </div>
+                <button onclick="changeScene('door-screen', 'game-screen')" style="margin-top: 2vh; width: 100%; font-size: 2vh;">Voltar</button>
+            </div>
+        </div>
+
+        <div id="end-screen" class="screen" style="background-image: url('img/game_over.png');">
+            <div style="background: rgba(0,0,0,0.85); padding: 5vh; border: 2px solid white;">
+                <h1 id="end-title">FIM DE JOGO</h1>
+                <p id="end-msg">Mensagem...</p>
+                <p id="end-time-played" style="font-size: 3vh; color: yellow; font-weight: bold;">Tempo Jogado: 00:00</p>
+                <button onclick="location.reload()">Jogar Novamente</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ==========================================
+           1. SISTEMA DE ÁUDIO & VARIÁVEIS GERAIS
+           ========================================== */
+        const sounds = {
+            bg: new Audio('sons/bg_music.mp3'),
+            wrong: new Audio('sons/wrong.mp3'),
+            correct: new Audio('sons/correct.mp3'),
+            challenge_win: new Audio('sons/challenge_win.mp3'),
+            tecla: new Audio('sons/tecla_sound.mp3'),
+            pw_correct: new Audio('sons/pw-correct.mp3'),
+            pw_wrong: new Audio('sons/pw-wrong.mp3'),
+            game_over: new Audio('sons/game_over_sound.mp3')
+        };
+        sounds.bg.loop = true;
+        sounds.bg.volume = 0.2;
+        let audioEnabled = false;
+
+        function playSound(name) {
+            if (!audioEnabled) return;
+            if (name !== 'bg') sounds[name].currentTime = 0;
+            sounds[name].play().catch(() => {});
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('toggle-audio');
+            if(audioEnabled) {
+                btn.innerText = "🔊 Som On";
+                sounds.bg.play().catch(() => {});
+            } else {
+                btn.innerText = "🔇 Som Off";
+                sounds.bg.pause();
+            }
+        }
+
+        // Base de Imagens
+        const puzzleBackgrounds = [
+            'img/bg_estante_a.png', 'img/bg_estante_b.png', 'img/bg_quadro.png',
+            'img/bg_mesa.png', 'img/bg_livro_a.png', 'img/bg_livro_b.png'
+        ];
+
+        // Perguntas Padrão (Fallback)
+        let fillerQuestions = 
+        [
+        {
+            "pergunta": "Um vetor deslocamento de 3 m para o leste é somado a outro de 4 m para o norte. Qual é o módulo do vetor resultante?",
+            "opcoes": ["5 m", "7 m", "1 m", "12 m"],
+            "resposta": "5 m"
+        },
+        {
+            "pergunta": "Dois vetores possuem módulos de 10 N e 6 N e atuam na mesma direção, porém em sentidos opostos. Qual é o módulo da resultante?",
+            "opcoes": ["16 N", "10 N", "4 N", "0 N"],
+            "resposta": "4 N"
+        },
+        {
+            "pergunta": "Quando dois vetores de mesmo módulo e mesma direção possuem sentidos opostos, a soma vetorial é:",
+            "opcoes": ["O dobro do módulo", "Nula", "Igual ao maior vetor", "Metade do módulo"],
+            "resposta": "Nula"
+        },
+        {
+            "pergunta": "A Primeira Lei de Newton afirma que um corpo tende a:",
+            "opcoes": [
+            "Aumentar sua velocidade continuamente",
+            "Permanecer em repouso ou em movimento retilíneo uniforme, se a força resultante for nula",
+            "Parar sempre que estiver em movimento",
+            "Mover-se apenas quando houver atrito"
+            ],
+            "resposta": "Permanecer em repouso ou em movimento retilíneo uniforme, se a força resultante for nula"
+        },
+        {
+            "pergunta": "Uma força resultante de 20 N atua sobre um corpo de massa 4 kg. Qual é a aceleração produzida?",
+            "opcoes": ["2 m/s²", "4 m/s²", "5 m/s²", "8 m/s²"],
+            "resposta": "5 m/s²"
+        },
+        {
+            "pergunta": "Segundo a Segunda Lei de Newton, a aceleração de um corpo é:",
+            "opcoes": [
+            "Diretamente proporcional à força resultante e inversamente proporcional à massa",
+            "Diretamente proporcional à massa e inversamente proporcional à força",
+            "Sempre igual à velocidade",
+            "Independente da força aplicada"
+            ],
+            "resposta": "Diretamente proporcional à força resultante e inversamente proporcional à massa"
+        },
+        {
+            "pergunta": "Um corpo de massa 2 kg sofre aceleração de 3 m/s². Qual é a força resultante aplicada sobre ele?",
+            "opcoes": ["1,5 N", "5 N", "6 N", "9 N"],
+            "resposta": "6 N"
+        },
+        {
+            "pergunta": "Segundo a Terceira Lei de Newton, quando um corpo exerce uma força sobre outro:",
+            "opcoes": [
+            "Apenas o primeiro corpo sofre ação",
+            "O segundo corpo exerce uma força de mesma intensidade e direção, mas sentido oposto",
+            "As forças se anulam por atuarem no mesmo corpo",
+            "O segundo corpo não reage"
+            ],
+            "resposta": "O segundo corpo exerce uma força de mesma intensidade e direção, mas sentido oposto"
+        },
+        {
+            "pergunta": "Um livro permanece em repouso sobre uma mesa. Considerando apenas as forças verticais, qual é a força resultante sobre o livro?",
+            "opcoes": ["Igual ao peso", "Igual à força normal", "Nula", "Igual ao dobro do peso"],
+            "resposta": "Nula"
+        },
+        {
+            "pergunta": "Um bloco de massa 6 kg é puxado horizontalmente por uma força de 30 N sobre uma superfície onde atua uma força de atrito de 12 N. Qual é a aceleração do bloco?",
+            "opcoes": ["1 m/s²", "2 m/s²", "3 m/s²", "5 m/s²"],
+            "resposta": "3 m/s²"
+        },
+        {
+            "pergunta": "Dois blocos de massas 2 kg e 3 kg estão em contato sobre uma superfície horizontal sem atrito. Uma força horizontal de 20 N é aplicada ao bloco de 2 kg. Qual é a intensidade da força de contato entre os blocos?",
+            "opcoes": ["8 N", "10 N", "12 N", "20 N"],
+            "resposta": "12 N"
+        },
+        {
+            "pergunta": "Um bloco de massa 5 kg é puxado por uma força de 50 N que forma um ângulo de 37° com a horizontal. Desprezando o atrito e considerando cos(37°)=0,8, qual é a aceleração horizontal do bloco?",
+            "opcoes": ["4 m/s²", "6 m/s²", "8 m/s²", "10 m/s²"],
+            "resposta": "8 m/s²"
+        },
+        {
+            "pergunta": "Um caminhão exerce uma força de 8000 N sobre um automóvel para rebocá-lo. De acordo com a Terceira Lei de Newton, qual é a força que o automóvel exerce sobre o caminhão?",
+            "opcoes": ["0 N", "4000 N", "8000 N em sentido oposto", "16000 N em sentido oposto"],
+            "resposta": "8000 N em sentido oposto"
+        },
+        {
+            "pergunta": "Um carro de massa 1000 kg acelera a 2 m/s² em uma pista horizontal. Desprezando as resistências, qual é a força resultante sobre o carro?",
+            "opcoes": ["500 N", "1000 N", "2000 N", "4000 N"],
+            "resposta": "2000 N"
+        }
+        ];
+
+        let digitQuestionsData = [
+            { q: "A divisão por esse número não existe.", val: 0 },
+            { q: "Único número positivo que não é primo nem composto.", val: 1 },
+            { q: "Único número primo par.", val: 2 },
+            { q: "Lados de um triângulo.", val: 3 },
+            { q: "Quantas estações tem o ano?", val: 4 },
+            { q: "Dedos em uma mão humana comum.", val: 5 },
+            { q: "Meia dúzia.", val: 6 },
+            { q: "Dias da semana.", val: 7 },
+            { q: "Pernas de uma aranha.", val: 8 },
+            { q: "Raiz quadrada de 81.", val: 9 }
+        ];
+
+        /* ==========================================
+           2. ESTADO E LÓGICA DO JOGO
+           ========================================== */
+        let gameState = {
+            secretCode: [],
+            userCode: "",
+            puzzles: [],
+            currentPuzzleId: null,
+            subQuestionIndex: 0,
+            timerInterval: null,
+            initialTime: 300, 
+            timeLeft: 300,
+            isGameOver: false
+        };
+
+        // Gerenciamento de Cenas
+        function changeScene(fromId, toId) {
+            const fromScreen = document.getElementById(fromId);
+            const toScreen = document.getElementById(toId);
+            fromScreen.style.opacity = 0;
+            setTimeout(() => {
+                fromScreen.classList.remove('active');
+                toScreen.classList.add('active');
+                setTimeout(() => toScreen.style.opacity = 1, 50);
+            }, 1000);
+        }
+
+        // Fluxo Inicial
+        function startStorySequence(minutes) {
+            gameState.initialTime = minutes * 60;
+            gameState.timeLeft = gameState.initialTime;
+            changeScene('difficulty-screen', 'story-1');
+        }
+
+        function finalizeStart() {
+            startGameLogic();
+        }
+
+        // Lógica de Distribuição de Perguntas
+        function startGameLogic() {
+            gameState.secretCode = [];
+            gameState.puzzles = [];
+            gameState.userCode = "";
+            gameState.isGameOver = false;
+            document.getElementById('code-display').innerText = "_ _ _ _ _ _";
+            
+            // Resetar objetos visuais
+            document.querySelectorAll('.interactive-obj').forEach(el => {
+                el.classList.remove('solved');
+                el.innerText = el.innerText.replace(" (RESOLVIDO)", "");
+            });
+
+            // 1. Embaralhar perguntas
+            let availableFillers = [...fillerQuestions].sort(() => 0.5 - Math.random());
+            
+            // Garantir mínimo de 6 perguntas (se não tiver no JSON/array, duplica)
+            while (availableFillers.length < 6) {
+                availableFillers = availableFillers.concat(fillerQuestions);
+            }
+
+            // 2. Distribuir perguntas entre as 6 salas
+            let rooms = [[], [], [], [], [], []];
+            let roomIndex = 0;
+            
+            // Distribui uma por uma (Card dealing style)
+            while (availableFillers.length > 0 && rooms[5].length < 5) { // Limite de segurança para não ficar gigante
+                if (availableFillers.length > 0) {
+                    rooms[roomIndex].push(availableFillers.pop());
+                } else {
+                    break;
+                }
+                roomIndex = (roomIndex + 1) % 6;
+            }
+
+            // 3. Adicionar a pergunta numérica (padrão) no final de cada sala
+            let shuffledDigits = [...digitQuestionsData].sort(() => 0.5 - Math.random());
+            
+            for (let i = 0; i < 6; i++) {
+                let digitQ = shuffledDigits[i % shuffledDigits.length];
+                gameState.secretCode.push(digitQ.val);
+                
+                // Formata a pergunta numérica para parecer com as outras na estrutura
+                let finalQFormatted = {
+                    pergunta: digitQ.q,
+                    resposta: digitQ.val, // número
+                    isDigit: true,
+                    options: [] // Será gerado na hora
+                };
+
+                rooms[i].push(finalQFormatted);
+
+                gameState.puzzles.push({
+                    id: i,
+                    questions: rooms[i],
+                    solved: false
+                });
+            }
+
+            console.log("Senha:", gameState.secretCode);
+            changeScene('story-3', 'game-screen');
+            startTimer();
+        }
+
+        // Cronômetro e Penalidades
+        function startTimer() {
+            const display = document.getElementById('timer-display');
+            display.style.display = 'block';
+            
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.timeLeft <= 0) {
+                    gameOver(false);
+                } else {
+                    gameState.timeLeft--;
+                    updateTimerDisplay();
+                }
+            }, 1000);
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timer-display');
+            let m = Math.floor(gameState.timeLeft / 60);
+            let s = gameState.timeLeft % 60;
+            display.innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        function penalizeTime(seconds) {
+            gameState.timeLeft -= seconds;
+            if (gameState.timeLeft < 0) gameState.timeLeft = 0;
+            
+            updateTimerDisplay();
+            
+            // Efeito visual
+            const display = document.getElementById('timer-display');
+            display.classList.add('timer-penalty');
+            setTimeout(() => display.classList.remove('timer-penalty'), 500);
+        }
+
+        /* ==========================================
+           3. PUZZLES E INTERAÇÃO
+           ========================================== */
+        function enterPuzzle(puzzleId) {
+            const puzzle = gameState.puzzles[puzzleId];
+            if (puzzle.solved) return;
+
+            gameState.currentPuzzleId = puzzleId;
+            gameState.subQuestionIndex = 0;
+
+            document.getElementById('puzzle-screen').style.backgroundImage = `url('${puzzleBackgrounds[puzzleId]}')`;
+            changeScene('game-screen', 'puzzle-screen');
+            setTimeout(loadQuestionUI, 1000);
+        }
+
+        function loadQuestionUI() {
+            const puzzle = gameState.puzzles[gameState.currentPuzzleId];
+            const currentQ = puzzle.questions[gameState.subQuestionIndex];
+            
+            const titleEl = document.getElementById('puzzle-title');
+            const textEl = document.getElementById('puzzle-text');
+            const optsEl = document.getElementById('puzzle-options');
+            const progEl = document.getElementById('puzzle-progress');
+
+            progEl.innerText = `Pergunta ${gameState.subQuestionIndex + 1} de ${puzzle.questions.length}`;
+            optsEl.innerHTML = '';
+
+            // Se for pergunta normal
+            if (!currentQ.isDigit) {
+                titleEl.innerText = "Responda para liberar a pista...";
+                titleEl.style.color = "white";
+                textEl.innerText = currentQ.pergunta;
+                
+                let opts = [...currentQ.opcoes].sort(() => 0.5 - Math.random());
+                opts.forEach(opt => {
+                    let btn = document.createElement('button');
+                    btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(opt, currentQ.resposta);
+                    optsEl.appendChild(btn);
+                });
+            } 
+            // Se for pergunta de dígito (A ÚLTIMA)
+            else {
+                titleEl.innerText = "ENIGMA FINAL DO OBJETO";
+                titleEl.style.color = "red";
+                textEl.innerText = currentQ.pergunta;
+                
+                let correctAnswer = currentQ.resposta;
+                let options = [correctAnswer];
+                while(options.length < 4) {
+                    let rnd = Math.floor(Math.random() * 10);
+                    if(!options.includes(rnd)) options.push(rnd);
+                }
+                options.sort(() => 0.5 - Math.random());
+
+                options.forEach(opt => {
+                    let btn = document.createElement('button');
+                    btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(opt, correctAnswer);
+                    optsEl.appendChild(btn);
+                });
+            }
+        }
+
+        function checkAnswer(selected, correct) {
+            const puzzle = gameState.puzzles[gameState.currentPuzzleId];
+            
+            if (String(selected) === String(correct)) {
+                // Se acertou
+                if (gameState.subQuestionIndex < puzzle.questions.length - 1) {
+                    playSound('correct');
+                    gameState.subQuestionIndex++;
+                    loadQuestionUI();
+                } else {
+                    // Terminou o puzzle da sala
+                    playSound('challenge_win');
+                    alert(`VOCÊ ENCONTROU UM NÚMERO!\n\nPosição ${gameState.currentPuzzleId + 1} da senha: ${gameState.secretCode[gameState.currentPuzzleId]}`);
+                    
+                    puzzle.solved = true;
+                    let objects = document.querySelectorAll('.interactive-obj');
+                    objects[gameState.currentPuzzleId].classList.add('solved');
+                    objects[gameState.currentPuzzleId].innerText += " (RESOLVIDO)";
+                    exitPuzzle();
+                }
+            } else {
+                // Se errou
+                playSound('wrong');
+                penalizeTime(30); // 30 segundos
+                alert("Resposta Errada! -30 segundos.");
+            }
+        }
+
+        function exitPuzzle() {
+            changeScene('puzzle-screen', 'game-screen');
+        }
+
+        /* ==========================================
+           4. PORTA E TECLADO
+           ========================================== */
+        function goToDoor() {
+            changeScene('game-screen', 'door-screen');
+            gameState.userCode = "";
+            updateKeypadDisplay();
+        }
+
+        function pressKey(key) {
+            playSound('tecla');
+            if (key === 'C') {
+                gameState.userCode = "";
+            } else if (gameState.userCode.length < 6 && key !== 'Enter') {
+                gameState.userCode += key;
+            }
+            updateKeypadDisplay();
+        }
+
+        function updateKeypadDisplay() {
+            let display = gameState.userCode.padEnd(6, '_').split('').join(' ');
+            document.getElementById('code-display').innerText = display;
+        }
+
+        function verifyCode() {
+            let correctCodeStr = gameState.secretCode.join('');
+            if (gameState.userCode === correctCodeStr) {
+                playSound('pw_correct');
+                gameOver(true);
+            } else {
+                playSound('pw_wrong');
+                penalizeTime(60); // 1 minuto
+                alert("SENHA INCORRETA! -1 minuto.");
+                gameState.userCode = "";
+                updateKeypadDisplay();
+            }
+        }
+
+        // Event Listener para Teclado Físico
+        window.addEventListener('keydown', function(e) {
+            // Verifica se a tela da porta está ativa
+            if (document.getElementById('door-screen').classList.contains('active')) {
+                if (e.key >= '0' && e.key <= '9') {
+                    pressKey(e.key);
+                } else if (e.key === 'Backspace' || e.key === 'c' || e.key === 'C') {
+                    pressKey('C');
+                } else if (e.key === 'Enter') {
+                    verifyCode();
+                }
+            }
+        });
+
+        /* ==========================================
+           5. FIM DE JOGO E DATA
+           ========================================== */
+        function gameOver(win) {
+            clearInterval(gameState.timerInterval);
+            gameState.isGameOver = true;
+            
+            let timePlayedSec = gameState.initialTime - gameState.timeLeft;
+            let m = Math.floor(timePlayedSec / 60);
+            let s = timePlayedSec % 60;
+            let timeString = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+
+            let currentActive = document.querySelector('.screen.active').id;
+            changeScene(currentActive, 'end-screen');
+            
+            const title = document.getElementById('end-title');
+            const msg = document.getElementById('end-msg');
+            const timeDisplay = document.getElementById('end-time-played');
+
+            timeDisplay.innerText = `Tempo Jogado: ${timeString}`;
+
+            if (win) {
+                title.innerText = "VOCÊ ESCAPOU!";
+                title.style.color = "#0f0";
+                sounds.bg.pause();
+                sounds.game_over.loop = true;
+                sounds.game_over.volume = 0.2;
+                playSound('game_over');
+                msg.innerText = "Lucas abriu a porta principal e correu para a liberdade.";
+
+            } else {
+                title.innerText = "GAME OVER";
+                title.style.color = "red";
+                msg.innerText = "O tempo acabou. Lucas ficará preso na biblioteca para sempre...";
+            }
+        }
+
+        // Carregamento de JSON
+        function loadCustomQuestions(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    // Suporte ao formato antigo e novo para compatibilidade ou uso misto
+                    let newQuestions = [];
+                    
+                    if (Array.isArray(json)) {
+                         // Se o json for uma array direta de objetos
+                         newQuestions = json;
+                    } else if (json.questions) {
+                        newQuestions = json.questions;
+                    }
+
+                    if (newQuestions.length > 0) {
+                        // Substitui as fillerQuestions pelo JSON carregado
+                        fillerQuestions = newQuestions;
+                        alert("Perguntas carregadas com sucesso! (" + newQuestions.length + " perguntas)");
+                    } else {
+                        alert("Nenhuma pergunta encontrada no JSON.");
+                    }
+                } catch (err) {
+                    alert("Erro no JSON. Verifique a formatação.");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
